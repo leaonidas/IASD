@@ -33,7 +33,7 @@ class ASARProblem(search.Problem):
         self.rot_times = rot_times
         
     
-    def legs_restantes(self,state):
+    def legs_restantes(self,state):        
         legs_rest,i = [],0
         for j in self.legs:
             if int(state[1][i]) == 1: legs_rest.append(j)
@@ -64,6 +64,7 @@ class ASARProblem(search.Problem):
         """Return the state that results from executing the given
         action in the given state. The action must be one of
         self.actions(state)."""
+        
         print (action)   
         state = [list(state[0]),list(state[1])]
         indice = 0
@@ -71,7 +72,6 @@ class ASARProblem(search.Problem):
             if k.split()[0] == action.split()[0] and k.split()[1] == action.split()[1]: 
                 state[1][indice] = '0'
             indice += 1
-        #state_result = [[],[]]
         state[0][0] = str(int(state[0][0]) - 1)
         state[0][1] = str(int(state[0][1]) + int(action.split()[4]))
         i = 0
@@ -103,21 +103,12 @@ class ASARProblem(search.Problem):
         if (state[0][0] == '0'): return True
         return False
         
-# =============================================================================
-#         aux = []
-#         [aux.append(j.split()[0]+' '+j.split()[1]) for j in state]
-#         for i in self.legs:
-#             if (i.split()[0]+' '+i.split()[1] not in aux): return False
-#         return True
-#             
-# =============================================================================
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from
         state1 via action, assuming cost c to get up to state1. If the problem
         is such that the path doesn't matter, this function will only look at
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
-        #print(c)
         return c - int(action.split()[4])
 
     def h(self,node):
