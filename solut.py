@@ -24,22 +24,29 @@ class ASARProblem(search.Problem):
         other arguments."""
         f = open("simple1.txt","r")
         [airports, planes, legs, rot_times] = self.load(f)
-        initial = [len(legs),0]
-        legs_restantes = legs
-        self.initial = initial
+        #legs_restantes = legs
+        self.initial = [[6,0,'a320','LPPT',800,'a330','LPPT',800],[1,1,1,1,1,1]]
         self.build_graph(legs)
-        self.state = state
+        self.state_initial = [[6,0,'a320','LPPT',800,'a330','LPPT',800],[1,1,1,1,1,1]]
         self.legs = legs
         self.airports = airports
         self.planes = planes
         self.rot_times = rot_times
-        self.legs_restantes = legs_restantes
+        #self.legs_restantes = legs_restantes([[6,0,'a320','LPPT',800,'a330','LPPT',800],[1,1,1,1,1,1]])
         
+    
+    def legs_restantes(self,state):
+        legs_rest,i = [],0
+        for j in self.legs:
+            if state[1][i] == 1: legs_rest.append(j)
+            i+=1
+        return legs_rest             
+    
     def actions(self, state):
         possible_actions=[]      
-        for i in self.legs_restantes:
+        for i in self.legs_restantes(state):
             for j in range (len(self.planes)):
-                if i.split()[0] == state[3*j+3].split()[0] and self.horario_possivel(state,i,j):                    
+                if i.split()[0] == state[0][3*j+3].split()[0] and self.horario_possivel(state,i,j):                    
                     possible_actions.append(i.split()[0]+' '+i.split()[1]+' '+i.split()[2]+' '+i.split()[3+2*j]+' '+i.split()[4+2*j])
         return possible_actions
         
@@ -50,7 +57,7 @@ class ASARProblem(search.Problem):
     
     def horario_possivel(self,state,leg,aviao):
         for i in self.airports:
-            if (leg.split()[0] == i.split()[0]) and (int(i.split()[2]) > (int(state[4+3*aviao])+int(leg.split()[2]))): 
+            if (leg.split()[0] == i.split()[0]) and (int(i.split()[2]) > (int(state[0][4+3*aviao])+int(leg.split()[2]))): 
                 return True
         return False
 
@@ -58,20 +65,21 @@ class ASARProblem(search.Problem):
         """Return the state that results from executing the given
         action in the given state. The action must be one of
         self.actions(state)."""
+        print (action)
         indice = 0
-        for k in self.legs_restantes:
+        for k in self.legs:
             if k.split()[0] == action.split()[0] and k.split()[1] == action.split()[1]: 
-                self.legs_restantes.pop(indice)
+                state[1][indice] = 0
             indice += 1
         
-        state[0] -= 1
-        state[1] += int(action.split()[4])
+        state[0][0] -= 1
+        state[0][1] += int(action.split()[4])
         i = 0
         for j in self.planes: 
             if j.split()[1] == action.split()[3]:
-                state[3+3*i] = action.split()[1]
-                state[4+3*i] = self.somar_horarios(state[4+3*i],int(action.split()[2]))
-                state[4+3*i] = self.somar_horarios(state[4+3*i],int(self.rot_times[i].split()[1]))
+                state[0][3+3*i] = action.split()[1]
+                state[0][4+3*i] = self.somar_horarios(state[0][4+3*i],int(action.split()[2]))
+                state[0][4+3*i] = self.somar_horarios(state[0][4+3*i],int(self.rot_times[i].split()[1]))
             i += 1
         return state
     
@@ -87,9 +95,10 @@ class ASARProblem(search.Problem):
         list, as specified in the constructor. Override this method if
         checking against a single self.goal is not enough."""
         for i in range (len(self.planes)):
-            print (self.initial)
-            if state[3+3*i] != self.initial[3+3*i]: return False
-        if (state[0] == 0) : return True
+            #print (self.initial)
+            #print (self.legs_restantes)
+            if state[0][3+3*i] != self.state_initial[0][3+3*i]: return False
+        if (state[0][0] == 0) : return True
         return False
         
 # =============================================================================
@@ -106,28 +115,23 @@ class ASARProblem(search.Problem):
         is such that the path doesn't matter, this function will only look at
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
-        
-        return action[4]
+        #print(c)
+        return c - int(action.split()[4])
 
     def h(self,node):
         
-# =============================================================================
-#         profit,k =0,0
-#         legs_rest = node.path
-#         for j in self.legs:
-#             if j.split()[0]+
-#             k+=1
-# =============================================================================
         profit = 0
-        for i in self.legs_restantes:
+        for i in self.legs_restantes(node.state):
             profits = []
             for j in range (len(self.planes)):
                 profits.append(int(i.split()[4+2*j]))
             profit += max(profits)           
-        return profit
+        return profit*-1
     
     def load(self,f):
         """Loads problem file"""
+        
+        
         airports,planes,legs,rot_times=[],[],[],[]
         
         f1=f.readlines()
@@ -176,28 +180,29 @@ class ASARProblem(search.Problem):
             else:
                 graph_dict[orig]={ dest : time} 
                         
-# =============================================================================
-#         G=Graph(graph_dict)
-# =============================================================================
-#        print (graph_dict)
+        #print (graph_dict)
         return graph_dict
     
     
     
 def main():
-    """Estado = [nºde legs restantes,profit_total,aviao_1,aeroporto,horario,...,aviao_n,aeroporto,horario]"""    
+    """Estado = [[nºde legs restantes,profit_total,aviao_1,aeroporto,horario,...,aviao_n,aeroporto,horario][1,0,0,1,...,0,1]]"""    
     p = ASARProblem()
-    p.initial = [6,0,'a320','LPPT',1000,'a330','LPPT',1000]
-    p.state = [6,0,'a320','LPPT',1000,'a330','LPPT',1000]
-    node = search.Node(p.state)
-    x = p.actions(p.state)
-    print(x)
-    print (p.result(p.state,x[0]))
-    print (p.goal_test(p.state))
-    print (p.h(node))
-    print (p.legs_restantes)
-    print (node.state)
-    #search.astar_search(p,p.h(node))
+# =============================================================================
+#     p.state = tuple([[6,0,'a320','LPPT',800,'a330','LPPT',800],[1,1,1,1,1,1]])
+#     node = search.Node(p.state)
+#     print (node.state)
+#     x = p.actions(node.state)
+#     print(p.legs)
+#     print (p.goal_test(p.state))
+#     print (p.h(node))
+#     print (p.legs_restantes(p.result(p.state,x[0])))
+#     print (p.state)
+#     print (p.path_cost(0,p.state, x[0],p.result(p.state,x[0])))
+#     
+# =============================================================================
+    print(search.astar_search(p))
+    #print (p.legs_restantes(p.initial))
 main()
 # =============================================================================
 #    print (p.get_airports_PQ(p.airports))
