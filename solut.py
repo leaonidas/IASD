@@ -77,7 +77,7 @@ class ASARProblem(search.Problem):
                 state[0][3+3*i] = action.split()[1]
                 state[0][4+3*i] = self.somar_horarios(int(state[0][4+3*i]),int(action.split()[2]))
                 if self.rot_times[l].split()[0] != self.planes[i].split()[1]: l+=1
-                state[0][4+3*i] = self.somar_horarios(int(state[0][4+3*i]),int(self.rot_times[l].split()[1]))
+                state[0][4+3*i] = str(self.somar_horarios(int(state[0][4+3*i]),int(self.rot_times[l].split()[1])))
             i += 1
         state = tuple([tuple(state[0]),tuple(state[1])])
         #print (state)
