@@ -5,10 +5,6 @@ Created on Tue Oct 29 14:48:32 2019
 @author: Fernando
 """
 
-# DEFINITIONS
-
-import heapq
-import datetime as time
 import search
 
 class ASARProblem(search.Problem):
@@ -18,15 +14,15 @@ class ASARProblem(search.Problem):
     __init__, goal_test, and path_cost. Then you will create instances
     of your subclass and solve them with the various search functions."""
 
-    def __init__(self,state =[]):
+    def __init__(self,state =[],initial = []):
         """The constructor specifies the initial state, and possibly a goal
         state, if there is a unique goal. Your subclass's constructor can add
         other arguments."""
         f = open("simple1.txt","r")
         [airports, planes, legs, rot_times] = self.load(f)
-        self.initial = tuple([tuple(['6','0','a320','LPFR','800','a330','LPMA','800']),tuple(['1','1','1','1','1','1'])])
-        self.build_graph(legs)
-        self.state_initial = [['6','0','a320','LPFR','800','a330','LPMA','800'],['1','1','1','1','1','1']]
+        self.initial = initial
+        #self.build_graph(legs)
+        self.state_initial = initial
         self.legs = legs
         self.airports = airports
         self.planes = planes
@@ -44,7 +40,7 @@ class ASARProblem(search.Problem):
         state = [list(state[0]),list(state[1])]
         possible_actions=[]      
         for i in self.legs_restantes(state):
-            for j in range (len(self.planes)):
+            for j in range (self.dif_planes()):
                 if i.split()[0] == state[0][3*j+3].split()[0] and self.horario_possivel(state,i,j):                    
                     possible_actions.append(i.split()[0]+' '+i.split()[1]+' '+i.split()[2]+' '+i.split()[3+2*j]+' '+i.split()[4+2*j])
         return possible_actions
@@ -65,7 +61,7 @@ class ASARProblem(search.Problem):
         action in the given state. The action must be one of
         self.actions(state)."""
         
-        print (action)   
+        #print (action)   
         state = [list(state[0]),list(state[1])]
         indice = 0
         for k in self.legs:
@@ -74,12 +70,14 @@ class ASARProblem(search.Problem):
             indice += 1
         state[0][0] = str(int(state[0][0]) - 1)
         state[0][1] = str(int(state[0][1]) + int(action.split()[4]))
-        i = 0
+        i,l,percorreu = 0,0,1
         for j in self.planes: 
-            if j.split()[1] == action.split()[3]:
+            if j.split()[1] == action.split()[3] and percorreu:
+                percorreu = 0
                 state[0][3+3*i] = action.split()[1]
                 state[0][4+3*i] = self.somar_horarios(int(state[0][4+3*i]),int(action.split()[2]))
-                state[0][4+3*i] = self.somar_horarios(int(state[0][4+3*i]),int(self.rot_times[i].split()[1]))
+                if self.rot_times[l].split()[0] != self.planes[i].split()[1]: l+=1
+                state[0][4+3*i] = self.somar_horarios(int(state[0][4+3*i]),int(self.rot_times[l].split()[1]))
             i += 1
         state = tuple([tuple(state[0]),tuple(state[1])])
         #print (state)
@@ -111,14 +109,19 @@ class ASARProblem(search.Problem):
         and action. The default method costs 1 for every step in the path."""
         return c - int(action.split()[4])
 
+    def dif_planes(self):
+        dif = []
+        for i in self.planes:
+            if i.split()[1] not in dif: dif.append(i.split()[1])
+        return len(dif)
+    
     def h(self,node):
-        
         profit = 0
         for i in self.legs_restantes(node.state):
             profits = []
-            for j in range (len(self.planes)):
+            for j in range (self.dif_planes()):
                 profits.append(int(i.split()[4+2*j]))
-            profit += max(profits)           
+            profit += max(profits)
         return profit*-1
     
     def load(self,f):
@@ -148,17 +151,6 @@ class ASARProblem(search.Problem):
         
         return state
         
-    def get_airports_PQ(self, airports):
-        h=[]
-        for i in airports:
-            name=i.split()[0]
-            t1=time.timedelta(hours=(int(i.split()[1][0]))*10+int(i.split()[1][1]), minutes=(int(i.split()[1][2]))*10+int(i.split()[1][3]))
-            t2=time.timedelta(hours=(int(i.split()[2][0]))*10+int(i.split()[2][1]), minutes=(int(i.split()[2][2]))*10+int(i.split()[2][3]))
-            deltat=t2-t1
-            h.append([time.timedelta.total_seconds(deltat),name])
-        heapq._heapify_max(h)
-        return h
-    
     def build_graph(self,legs):
         
         graph_dict={}
@@ -177,11 +169,38 @@ class ASARProblem(search.Problem):
         return graph_dict
     
     
-    
+def d2b(n,base):
+    if n == 0:
+        return ''
+    else:
+        return d2b(n//base,base) + str(n%base)
+
 def main():
     """Estado = [[nºde legs restantes,profit_total,aviao_1,aeroporto,horario,...,aviao_n,aeroporto,horario][1,0,0,1,...,0,1]]"""    
     p = ASARProblem()
-    print(search.astar_search(p))
+    legs_feitas = len(p.legs) * ['1']
+    best_solution = None
+    for i in range (len(p.airports)**len(p.planes)): 
+        p.initial = [len(p.legs),'0']
+        if (d2b(i,len(p.airports))==''): num = 0
+        else: num = int(d2b(i,len(p.airports)))
+        for j in range (len(p.planes)):
+           if j == (len(p.planes)-1): indice = num%10
+           else: indice = num//(10**(j+1))
+           p.initial.append(p.planes[j].split()[1])
+           p.initial.append(p.airports[indice].split()[0])
+           p.initial.append(p.airports[indice].split()[1])
+        p.initial = tuple([tuple(p.initial),tuple(legs_feitas)])
+        p.state_initial = p.initial
+        solution = search.astar_search(p)
+        if solution and not best_solution: best_solution = solution
+        else:
+            try:            
+                if (int (solution.state[0][1]) > int(best_solution.state[0][1])):
+                    best_solution = solution
+            except:
+                continue
+    print (best_solution)
 main()
 # =============================================================================
 #     p.state = [['6','0','a320','LPPT','800','a330','LPPT','800'],['1','1','1','1','1','1']]
