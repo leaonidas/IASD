@@ -7,6 +7,7 @@ Created on Tue Oct 29 14:48:32 2019
 
 import search
 
+
 class ASARProblem(search.Problem):
 
     """The abstract class for a formal problem. You should subclass
@@ -18,7 +19,7 @@ class ASARProblem(search.Problem):
         """The constructor specifies the initial state, and possibly a goal
         state, if there is a unique goal. Your subclass's constructor can add
         other arguments."""
-        f = open("simple1.txt","r")
+        f = open("simple2.txt","r")
         [airports, planes, legs, rot_times] = self.load(f)
         self.initial = initial
         #self.build_graph(legs)
@@ -27,6 +28,7 @@ class ASARProblem(search.Problem):
         self.airports = airports
         self.planes = planes
         self.rot_times = rot_times
+        self.path = []
         
     
     def legs_restantes(self,state):        
@@ -87,6 +89,8 @@ class ASARProblem(search.Problem):
         soma = (hora1%100+hora2%100)        
         if (soma>59): hora1 = (hora1//100)*100 + (hora2//100)*100 + 100 + (soma%60)
         else: hora1 += hora2   
+        if len(str(hora1))<4:
+            hora1 = '%04d' % hora1
         return hora1
     
     def goal_test(self,state):
@@ -146,10 +150,54 @@ class ASARProblem(search.Problem):
         
         return [airports, list(reversed(planes)), legs, rot_times]
            
-    def save(self,file_handler, state):
-        state=0;
+    def save(self,file_handler, path):
+        k=0
+        plane_mat = [ [ " " for i in range(len(self.planes)+1) ] for j in range(3) ]
         
-        return state
+        if path == None:
+            auxToStr = "Infeasble"
+            f = open(file_handler, "w+")
+            f.write(auxToStr)
+            f.close()
+            return
+
+        """Creates text to be written in the output file"""
+        aux=[]
+        for i in range (len(self.planes)):
+            aux.append("S" + " " + self.planes[i][:6])
+            if i==len(self.planes)-1:
+                aux.append("P")
+        
+        """Writes states in the file"""
+                        
+        for leg in path:
+            list_leg = list(str(leg.state).split(","))
+            for i in range(1, len(list_leg)-len(self.legs)):
+                if (i*3+1) >= len(list_leg)-len(self.legs): break
+                if plane_mat[i-1][1] != list_leg[i*3][2:-1] and k < 2:
+                    plane_mat[i-1][1] = list_leg[i*3][2:-1]
+                    if len(list_leg[i*3+1]) < 8:
+                        plane_mat[i-1][0] = list_leg[i*3+1][2:-1]
+                    else:
+                        plane_mat[i-1][0] = list_leg[i*3+1][2:-2]
+                    k+=1
+                elif plane_mat[i-1][1] != list_leg[i*3][2:-1] and k > 1:
+                    plane_mat[i-1][2] = list_leg[i*3][2:-1]
+                    aux[i-1] += " " + plane_mat[i-1][0] + " " + plane_mat[i-1][1] + " " + plane_mat[i-1][2]
+                    plane_mat[i-1][1] = plane_mat[i-1][2]
+                    if len(list_leg[i*3+1]) < 8:
+                        plane_mat[i-1][0] = list_leg[i*3+1][2:-1]
+                    else:
+                        plane_mat[i-1][0] = list_leg[i*3+1][2:-2]
+                elif '0' in list_leg[0]:
+                    aux[-1] = aux[-1] + (" " + str(list_leg[1][2:-1]))
+
+        """Converts list to string and writes in document"""
+        auxToStr = ''.join([str(elem) + '\n' for elem in aux])
+        
+        f = open(file_handler, "w+")
+        f.write(auxToStr)
+        f.close()
         
     def build_graph(self,legs):
         
@@ -201,6 +249,8 @@ def main():
             except:
                 continue
     print (best_solution)
+    print("\n")
+    p.save("solution.txt", best_solution.path())
 main()
 # =============================================================================
 #     p.state = [['6','0','a320','LPPT','800','a330','LPPT','800'],['1','1','1','1','1','1']]
