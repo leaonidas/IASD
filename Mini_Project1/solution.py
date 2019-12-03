@@ -19,7 +19,7 @@ class ASARProblem(search.Problem):
         """The constructor specifies the initial state, and possibly a goal
         state, if there is a unique goal. Your subclass's constructor can add
         other arguments."""
-        f = open("simple2.txt","r")
+        f = open("simple4.txt","r")
         [airports, planes, legs, rot_times] = self.load(f)
         self.initial = initial
         #self.build_graph(legs)
@@ -151,7 +151,7 @@ class ASARProblem(search.Problem):
         return [airports, list(reversed(planes)), legs, rot_times]
            
     def save(self,file_handler, path):
-        k=0
+        k, j= 0, 0
         plane_mat = [ [ " " for i in range(len(self.planes)+1) ] for j in range(3) ]
         
         if path == None:
@@ -169,31 +169,44 @@ class ASARProblem(search.Problem):
                 aux.append("P")
         
         """Writes states in the file"""
-                        
         for leg in path:
             list_leg = list(str(leg.state).split(","))
+            print("List leg: ", list_leg)
             for i in range(1, len(list_leg)-len(self.legs)):
                 if (i*3+1) >= len(list_leg)-len(self.legs): break
-                if plane_mat[i-1][1] != list_leg[i*3][2:-1] and k < 2:
+                if plane_mat[i-1][1] != list_leg[i*3][2:-1] and k <= len(self.planes)-1:
                     plane_mat[i-1][1] = list_leg[i*3][2:-1]
                     if len(list_leg[i*3+1]) < 8:
                         plane_mat[i-1][0] = list_leg[i*3+1][2:-1]
                     else:
                         plane_mat[i-1][0] = list_leg[i*3+1][2:-2]
                     k+=1
-                elif plane_mat[i-1][1] != list_leg[i*3][2:-1] and k > 1:
+                    print("Plane mat_", plane_mat)
+                elif plane_mat[i-1][1] != list_leg[i*3][2:-1] and k > len(self.planes)-1:
                     plane_mat[i-1][2] = list_leg[i*3][2:-1]
                     aux[i-1] += " " + plane_mat[i-1][0] + " " + plane_mat[i-1][1] + " " + plane_mat[i-1][2]
+                    print("Plane mat_", plane_mat)
                     plane_mat[i-1][1] = plane_mat[i-1][2]
                     if len(list_leg[i*3+1]) < 8:
                         plane_mat[i-1][0] = list_leg[i*3+1][2:-1]
                     else:
                         plane_mat[i-1][0] = list_leg[i*3+1][2:-2]
-                elif '0' in list_leg[0]:
+                    print(aux)
+                elif '0' in list_leg[0] and j==0:
                     aux[-1] = aux[-1] + (" " + str(list_leg[1][2:-1]))
+                    print("profit! ", aux[-1])
+                    j=1
 
         """Converts list to string and writes in document"""
-        auxToStr = ''.join([str(elem) + '\n' for elem in aux])
+        auxToStr = ''
+        for element in aux:
+            if element[0] == 'S' and len(str(element)) <= 8:
+                print("len_ " , len(str(element)))
+                pass
+            else:
+                #auxToStr = auxToStr.join(str(element) + '\n')
+                auxToStr += str(element) + '\n' 
+                print(auxToStr)
         
         f = open(file_handler, "w+")
         f.write(auxToStr)
@@ -228,40 +241,35 @@ def main():
     p = ASARProblem()
     legs_feitas = len(p.legs) * ['1']
     best_solution = None
-    for i in range (len(p.airports)**len(p.planes)): 
+    max_sol = int(d2b(len(p.airports)**len(p.planes), len(p.airports))) - 1
+    k=0
+    for i in range (len(p.airports)**len(p.planes)):
+        k=0
         p.initial = [len(p.legs),'0']
         if (d2b(i,len(p.airports))==''): num = 0
         else: num = int(d2b(i,len(p.airports)))
+        if len(str(num))<len(str(max_sol)):
+            num = '%03d' % num
+        strnum = str(num)
+        leng = len(strnum)
         for j in range (len(p.planes)):
-           if j == (len(p.planes)-1): indice = num%10
-           else: indice = num//(10**(j+1))
-           p.initial.append(p.planes[j].split()[1])
-           p.initial.append(p.airports[indice].split()[0])
-           p.initial.append(p.airports[indice].split()[1])
+            p.initial.append(p.planes[j].split()[1])
+            p.initial.append(p.airports[int(strnum[k])].split()[0])
+            p.initial.append(p.airports[int(strnum[k])].split()[1])
+            if k == leng-1: k=0
+            else: k+=1
         p.initial = tuple([tuple(p.initial),tuple(legs_feitas)])
         p.state_initial = p.initial
         solution = search.astar_search(p)
-        if solution and not best_solution: best_solution = solution
+        if solution and not best_solution: 
+            best_solution = solution
         else:
             try:            
                 if (int (solution.state[0][1]) > int(best_solution.state[0][1])):
                     best_solution = solution
             except:
                 continue
+                
     print (best_solution)
-    print("\n")
     p.save("solution.txt", best_solution.path())
 main()
-# =============================================================================
-#     p.state = [['6','0','a320','LPPT','800','a330','LPPT','800'],['1','1','1','1','1','1']]
-#     node = search.Node(p.state)
-#     print (node.state)
-#     x = p.actions(node.state)
-#     print(p.legs)
-#     print (p.goal_test(p.state))
-#     print (p.h(node))
-#     print (p.legs_restantes(p.result(p.state,x[0])))
-#     print (p.state)
-#     print (p.path_cost(0,p.state, x[0],p.result(p.state,x[0])))
-#     
-# =============================================================================
