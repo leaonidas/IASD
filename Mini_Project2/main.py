@@ -62,13 +62,13 @@ class Problem:
         table={}
         for i in range(tm):
             if i==0:
-                    table[i+1]={T:float(''.join(self.P))}
+                table[i+1]={T:1,F:0}
             else:
                 for j in range(2**(i+1)):
                 
                     booltuple=tuple(list(map(bool,list(map(int,list(format(j, '#0'+str(i+1+2)+'b').split('b')[1]))))))
                     power=sum(list(map(int,booltuple[1:len(booltuple)])))
-                    #print(power)
+                    
                     prob=1-(1-float(''.join(self.P)))**(power)
                     if booltuple[0]:
                         tt={booltuple:1}
@@ -96,8 +96,6 @@ class Problem:
         # Sensor: True | Variable: False - FPR
         # Sensor: False | Variable: True - FNR
         # Sensor: False | Variable: False - TNR
-        # TPR = 1-TNR
-        # FPR = 1-FNR
         
         # P(S01=T|parent=T) =TPR (given)
         # P(S01=T|parent=F) = FPR (given)
@@ -114,49 +112,8 @@ class Problem:
                     if j>=1:
                         node_specs.append((temp[0]+'_t+'+str(j),temp[1]+'_t+'+str(j),{T:TPR,F:FPR}))
         
-        
         #build BayesNet        
         self.BN=probability.BayesNet(node_specs)
-        
-# =============================================================================
-#         #Run elimination and print results
-#         results={}
-#         a=[]
-#         c=[]
-#         evidence=[]
-#         it=0
-#         for j in self.M:
-#             if it==0:
-#                 b=''.join(j)
-#                 c.append(b)
-#             else:
-#                 f=j.split(' ')
-#                 #print(f)
-#                 for k in f:
-#                     h=k.split(':')[0]+'_t+'+str(it)+':'+k.split(':')[1]
-#                     c.append(h)
-#             it=it+1
-#             d=' '.join(c)
-#             a=d.split(' ')
-#         
-#         paird={}
-#         for i in a:
-#             s=i.split(':')
-#             if s[1]=='T':
-#                 paird[s[0]]=T
-#             if s[1]=='F':
-#                 paird[s[0]]=F
-#         evidence=dict(paird)
-# 
-#         for i in self.vars:
-#             if len(self.M)>1:
-#                 results.update({i+'_t+'+str(len(self.M)-1):probability.elimination_ask(i+'_t+'+str(len(self.M)-1),evidence,BN).show_approx()})
-#             else:
-#                  results.update({i:probability.elimination_ask(i,evidence,BN).show_approx()})
-#                 
-# =============================================================================
-        #print(results)
-        #return max(True) of results
     
     def solve(self):
         # Place here your code to determine the maximum likelihood solution
@@ -194,13 +151,13 @@ class Problem:
         evidence=dict(paird)
 
         for i in self.vars:
+            #print(i)
             if len(self.M)>1:
                 results.update({i+'_t+'+str(len(self.M)-1):probability.elimination_ask(i+'_t+'+str(len(self.M)-1),evidence,self.BN).show_approx()})
             else:
                  results.update({i:probability.elimination_ask(i,evidence,self.BN).show_approx()})
         trues={}
         ml=0
-        
         for i in results:
             
             trues[i]=(results[i].split(',')[1].split(':')[1])
